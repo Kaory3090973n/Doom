@@ -31,6 +31,13 @@
  * ===================================================================== */
 const CHANGELOG = [
   {
+    versao: '0.4.0', data: '24/10/2026',
+    itens: [
+      { tipo: 'modificado', onde: 'index.html · tela inicial', texto: 'Tela inicial em grade: JOGAR em destaque, TREINAMENTO em linha inteira, ARMAS/PERSONAGENS e ATUALIZAÇÃO/OPÇÕES em duas colunas.' },
+      { tipo: 'modificado', onde: 'style.css · .menu-botoes', texto: 'Novo visual dos botões: fundo escuro, fonte monoespaçada, bordas arredondadas e JOGAR em bege preenchido.' },
+      { tipo: 'adicionado', onde: 'script.js · Game._montarAtualizacoes', texto: 'Botões TREINAMENTO, ARMAS, PERSONAGENS e OPÇÕES criados; por enquanto mostram "em breve".' }
+    ]
+  },  {
     versao: '0.3.1', data: '24/10/2026',
     itens: [
       { tipo: 'modificado', onde: 'script.js · CHANGELOG e lista de atualizações', texto: 'Cada item agora mostra o tipo (adicionado, modificado ou deletado) e o lugar do projeto onde a mudança foi feita.' },
@@ -1090,6 +1097,9 @@ class Game {
     document.getElementById('btnAtualizacoes').addEventListener('click', () => {
       this.ui.inicio.classList.add('oculto'); this.ui.atualizacoes.classList.remove('oculto');
     });
+    for (const id of ['btnTreino', 'btnArmas', 'btnPersonagens', 'btnOpcoes']) {
+      document.getElementById(id).addEventListener('click', () => this._avisar('Em breve.'));
+    }
     document.getElementById('btnVoltar').addEventListener('click', () => {
       this.ui.atualizacoes.classList.add('oculto'); this.ui.inicio.classList.remove('oculto');
     });

@@ -98,3 +98,22 @@ button:active { background: #161616; }
 .tag.modificado { color: #8f8f8f; }
 .tag.deletado { color: #5f5f5f; }
 .onde { display: block; font-size: 0.82em; letter-spacing: 0.06em; color: #5a5a5a; margin-bottom: 0.15em; }
+
+/* ---------- tela inicial: grade de botões (JOGAR em destaque) ---------- */
+#telaInicio { background: #0c0c10; }
+.menu-botoes {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  width: min(86%, 440px);
+}
+.menu-botoes button {
+  min-width: 0; width: 100%;
+  font-family: "Courier New", Courier, monospace; font-weight: 700;
+  font-size: clamp(12px, 1.5vw, 15px); letter-spacing: 0.08em;
+  padding: 1.05em 0.6em;
+  color: #e4e2d0; background: transparent;
+  border: 1px solid #3a3a40; border-radius: 10px;
+}
+.menu-botoes .largo { grid-column: 1 / -1; }
+.menu-botoes button:hover, .menu-botoes button:focus-visible { border-color: #8a8a8a; background: #14141a; color: #fff; }
+.menu-botoes .destaque { background: #e4e2d0; color: #111; border-color: #e4e2d0; }
+.menu-botoes .destaque:hover, .menu-botoes .destaque:focus-visible { background: #f0eedc; color: #000; border-color: #f0eedc; }
