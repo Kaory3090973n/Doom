@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini Doom</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="jogo">
+    <canvas id="tela"></canvas>
+
+    <div id="hud">
+      <div class="item"><span class="rotulo">VIDA</span><span id="hudVida">100</span></div>
+      <div class="item"><span class="rotulo">MUNIÇÃO</span><span id="hudMunicao">30</span></div>
+      <div class="item"><span class="rotulo">DEMÔNIOS</span><span id="hudInimigos">0</span></div>
+    </div>
+
+    <div id="danoFlash"></div>
+
+    <div id="overlay">
+      <h1 id="titulo">MINI DOOM</h1>
+      <p id="mensagem">Elimine todos os demônios do labirinto.</p>
+      <ul id="controles">
+        <li><b>W A S D</b> mover</li>
+        <li><b>Mouse</b> ou <b>← →</b> girar</li>
+        <li><b>Clique</b> ou <b>Espaço</b> atirar</li>
+        <li><b>P</b> pausar</li>
+      </ul>
+      <button id="btnIniciar">JOGAR</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
