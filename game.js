@@ -51,7 +51,10 @@
     lista: document.getElementById('listaUpdates'),
     btnJogar: document.getElementById('btnJogar'),
     btnAtualizacao: document.getElementById('btnAtualizacao'),
-    btnVoltar: document.getElementById('btnVoltar')
+    btnVoltar: document.getElementById('btnVoltar'),
+    btnSair: document.getElementById('btnSair'),
+    menuSaida: document.getElementById('menuSaida'),
+    btnVoltarSaida: document.getElementById('btnVoltarSaida')
   };
 
   // ---------------------------------------------------------------
@@ -284,7 +287,9 @@
     el.overlay.classList.add('oculto');
     el.menu.classList.remove('oculto');
     el.menuUpdates.classList.add('oculto');
+    el.menuSaida.classList.add('oculto');
     el.menuPrincipal.classList.remove('oculto');
+    el.btnJogar.focus({ preventScroll: true });
     if (document.exitPointerLock && document.pointerLockElement) document.exitPointerLock();
   }
 
@@ -304,9 +309,42 @@
     el.lista.scrollTop = 0;
   });
 
-  el.btnVoltar.addEventListener('click', () => {
+  // volta para a tela principal do lobby e deixa o foco no botão de onde o jogador veio
+  function voltarAoLobby(focar) {
     el.menuUpdates.classList.add('oculto');
+    el.menuSaida.classList.add('oculto');
     el.menuPrincipal.classList.remove('oculto');
+    focar.focus({ preventScroll: true });
+  }
+  el.btnVoltar.addEventListener('click', () => voltarAoLobby(el.btnAtualizacao));
+  el.btnVoltarSaida.addEventListener('click', () => voltarAoLobby(el.btnSair));
+
+  // SAIR: tenta fechar a aba. Navegadores só deixam fechar abas abertas pelo próprio site;
+  // se a aba continuar aberta, mostra o aviso de como fechar.
+  el.btnSair.addEventListener('click', () => {
+    window.close();
+    setTimeout(() => {
+      el.menuPrincipal.classList.add('oculto');
+      el.menuSaida.classList.remove('oculto');
+      el.btnVoltarSaida.focus({ preventScroll: true });
+    }, 150);
+  });
+
+  // Teclado no lobby: ↑ ↓ (ou W S) trocam o botão, Enter escolhe, Esc volta
+  window.addEventListener('keydown', e => {
+    if (estado !== 'menu') return;
+    const telaAberta = [el.menuPrincipal, el.menuUpdates, el.menuSaida].find(t => !t.classList.contains('oculto'));
+    if (!telaAberta) return;
+    const botoes = [...telaAberta.querySelectorAll('.btn-menu')];
+    const dir = (e.code === 'ArrowDown' || e.code === 'KeyS') ? 1 : (e.code === 'ArrowUp' || e.code === 'KeyW') ? -1 : 0;
+    if (dir && telaAberta === el.menuUpdates) {
+      el.lista.scrollTop += dir * 48; // na lista de atualizações as setas rolam o texto
+    } else if (dir) {
+      const i = botoes.indexOf(document.activeElement);
+      botoes[(i + dir + botoes.length) % botoes.length].focus({ preventScroll: true });
+    } else if (e.code === 'Escape' && telaAberta !== el.menuPrincipal) {
+      voltarAoLobby(telaAberta === el.menuUpdates ? el.btnAtualizacao : el.btnSair);
+    }
   });
 
   el.btnMenu.addEventListener('click', abrirMenu);

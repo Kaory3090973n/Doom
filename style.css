@@ -231,6 +231,14 @@ body {
   text-transform: uppercase;
 }
 
+.menu-aviso {
+  font-size: clamp(10px, 1.5vw, 14px);
+  line-height: 1.8;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: #6a6a6a;
+}
+
 /* ---------- Painel de atualizações ---------- */
 .menu-subtitulo {
   font-size: clamp(12px, 1.8vw, 18px);

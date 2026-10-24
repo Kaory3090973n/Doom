@@ -3,6 +3,15 @@
 // tipo: 'adicionado' | 'modificado' | 'removido'
 const ATUALIZACOES = [
   {
+    versao: '0.4.0',
+    data: '23/10/2026',
+    itens: [
+      { tipo: 'adicionado', texto: 'Botão Sair no lobby: fecha a aba (ou avisa como fechar, se o navegador não deixar).' },
+      { tipo: 'adicionado', texto: 'Lobby navegável pelo teclado: setas (ou W e S) trocam de botão, Enter escolhe e Esc volta.' },
+      { tipo: 'modificado', texto: 'O botão Atualização agora se chama Atualizações.' }
+    ]
+  },
+  {
     versao: '0.3.0',
     data: '23/10/2026',
     itens: [
