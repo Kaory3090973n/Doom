@@ -50,7 +50,8 @@
   const grid = [];
   const inimigos = [];
   const itens = [];
-  const p = { x: 1.5, y: 1.5, a: 0, hp: 100, municao: 30 };
+  const PITCH_MAX = 150; // limite (em pixels) de olhar para cima/baixo
+  const p = { x: 1.5, y: 1.5, a: 0, pitch: 0, hp: 100, municao: 30 };
   let estado = 'menu'; // menu | jogando | pausado | morto | vitoria
   let cooldown = 0, flashTiro = 0, recuo = 0, balanco = 0, tempo = 0;
   let travado = false;
@@ -71,6 +72,7 @@
       }
     }
     p.a = 0.3;
+    p.pitch = 0;
     p.hp = 100;
     p.municao = 30;
     cooldown = flashTiro = recuo = 0;
@@ -208,7 +210,10 @@
   });
 
   document.addEventListener('mousemove', e => {
-    if (estado === 'jogando' && travado) p.a += e.movementX * 0.0025;
+    if (estado === 'jogando' && travado) {
+      p.a += e.movementX * 0.0025;
+      p.pitch = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, p.pitch - e.movementY * 0.9));
+    }
   });
 
   document.addEventListener('pointerlockchange', () => {
@@ -313,19 +318,31 @@
     recuo = 1;
     som(180, 0.18, 'sawtooth', 0.2, -140);
 
-    const paredeDist = zBuf[W >> 1];
+    // A mira fica no centro da tela (W/2, H/2). Acerta o demônio cujo
+    // corpo (na projeção da tela) cobre esse ponto, sem parede na frente.
+    const dirX = Math.cos(p.a), dirY = Math.sin(p.a);
+    const planeX = -dirY * FOV, planeY = dirX * FOV;
+    const horizonte = H / 2 + p.pitch;
     let alvo = null, alvoDist = Infinity;
     for (const e of inimigos) {
       if (!e.vivo) continue;
-      const dx = e.x - p.x, dy = e.y - p.y;
-      const dist = Math.hypot(dx, dy);
-      let diff = Math.atan2(dy, dx) - p.a;
-      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-      const frente = dist * Math.cos(diff);
-      const lateral = Math.abs(dist * Math.sin(diff));
-      if (frente > 0 && lateral < 0.35 && frente < paredeDist && dist < alvoDist) {
+      const sx = e.x - p.x, sy = e.y - p.y;
+      const inv = 1 / (planeX * dirY - dirX * planeY);
+      const tX = inv * (dirY * sx - dirX * sy);
+      const tY = inv * (-planeY * sx + planeX * sy);
+      if (tY <= 0.15) continue;
+      const telaX = (W / 2) * (1 + tX / tY);
+      const tam = (H / tY) * 0.9;
+      const chao = horizonte + (H / tY) / 2;
+      const topo = chao - tam;
+      const colunaMira = Math.max(0, Math.min(W - 1, W >> 1));
+      if (
+        Math.abs(telaX - W / 2) < tam * 0.28 &&
+        H / 2 > topo + tam * 0.05 && H / 2 < chao &&
+        tY < zBuf[colunaMira] && tY < alvoDist
+      ) {
         alvo = e;
-        alvoDist = dist;
+        alvoDist = tY;
       }
     }
     if (alvo) {
@@ -352,11 +369,13 @@
     // girar
     if (teclas.ArrowLeft) p.a -= 2.4 * dt;
     if (teclas.ArrowRight) p.a += 2.4 * dt;
+    if (teclas.ArrowUp) p.pitch = Math.min(PITCH_MAX, p.pitch + 160 * dt);
+    if (teclas.ArrowDown) p.pitch = Math.max(-PITCH_MAX, p.pitch - 160 * dt);
 
     // mover
     let frente = 0, lado = 0;
-    if (teclas.KeyW || teclas.ArrowUp) frente += 1;
-    if (teclas.KeyS || teclas.ArrowDown) frente -= 1;
+    if (teclas.KeyW) frente += 1;
+    if (teclas.KeyS) frente -= 1;
     if (teclas.KeyD) lado += 1;
     if (teclas.KeyA) lado -= 1;
     if (frente || lado) {
@@ -428,10 +447,14 @@
   gradChao.addColorStop(1, '#4a3a2c');
 
   function desenharMundo(dirX, dirY, planeX, planeY) {
+    const horizonte = H / 2 + p.pitch;
+    ctx.save();
+    ctx.translate(0, p.pitch);
     ctx.fillStyle = gradTeto;
-    ctx.fillRect(0, 0, W, H / 2);
+    ctx.fillRect(0, -H * 2, W, H / 2 + H * 2);
     ctx.fillStyle = gradChao;
-    ctx.fillRect(0, H / 2, W, H / 2);
+    ctx.fillRect(0, H / 2, W, H * 2);
+    ctx.restore();
 
     for (let x = 0; x < W; x++) {
       const cam = 2 * x / W - 1;
@@ -461,7 +484,7 @@
       if (lado === 1 && ry < 0) tx = 63 - tx;
 
       const altura = H / dist;
-      const topo = H / 2 - altura / 2;
+      const topo = horizonte - altura / 2;
       ctx.drawImage(texturas[tipo], tx, 0, 1, 64, x, topo, 1, altura);
 
       const sombra = Math.min(0.85, dist / 14) + (lado ? 0.18 : 0);
@@ -479,7 +502,7 @@
 
     const telaX = (W / 2) * (1 + tX / tY);
     const tam = (H / tY) * escala;
-    const chao = H / 2 + (H / tY) / 2;
+    const chao = H / 2 + p.pitch + (H / tY) / 2;
     const topo = chao - tam;
     const x0 = telaX - tam / 2;
     const ini = Math.max(0, Math.floor(x0));
