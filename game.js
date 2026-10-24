@@ -41,7 +41,17 @@
     overlay: document.getElementById('overlay'),
     titulo: document.getElementById('titulo'),
     mensagem: document.getElementById('mensagem'),
-    btn: document.getElementById('btnIniciar')
+    btn: document.getElementById('btnIniciar'),
+    btnMenu: document.getElementById('btnMenu'),
+    jogo: document.getElementById('jogo'),
+    menu: document.getElementById('menu'),
+    menuPrincipal: document.getElementById('menuPrincipal'),
+    menuUpdates: document.getElementById('menuUpdates'),
+    menuVersao: document.getElementById('menuVersao'),
+    lista: document.getElementById('listaUpdates'),
+    btnJogar: document.getElementById('btnJogar'),
+    btnAtualizacao: document.getElementById('btnAtualizacao'),
+    btnVoltar: document.getElementById('btnVoltar')
   };
 
   // ---------------------------------------------------------------
@@ -233,6 +243,73 @@
       try { canvas.requestPointerLock(); } catch (e) { /* ignora */ }
     }
   });
+
+  // ---------------------------------------------------------------
+  // MENU INICIAL E ATUALIZAÇÕES
+  // ---------------------------------------------------------------
+  function montarAtualizacoes() {
+    el.lista.textContent = '';
+    for (const v of ATUALIZACOES) {
+      const bloco = document.createElement('section');
+      bloco.className = 'versao';
+
+      const cab = document.createElement('div');
+      cab.className = 'versao-cab';
+      const titulo = document.createElement('span');
+      titulo.textContent = 'alpha ' + v.versao;
+      const data = document.createElement('small');
+      data.textContent = v.data;
+      cab.append(titulo, data);
+      bloco.append(cab);
+
+      for (const m of v.itens) {
+        const linha = document.createElement('div');
+        linha.className = 'mudanca';
+        const tag = document.createElement('span');
+        tag.className = 'tag ' + m.tipo;
+        tag.textContent = m.tipo.toUpperCase();
+        const texto = document.createElement('span');
+        texto.textContent = m.texto;
+        linha.append(tag, texto);
+        bloco.append(linha);
+      }
+      el.lista.append(bloco);
+    }
+    el.menuVersao.textContent = 'alpha ' + ATUALIZACOES[0].versao;
+  }
+
+  function abrirMenu() {
+    estado = 'menu';
+    el.jogo.classList.add('em-menu');
+    el.overlay.classList.add('oculto');
+    el.menu.classList.remove('oculto');
+    el.menuUpdates.classList.add('oculto');
+    el.menuPrincipal.classList.remove('oculto');
+    if (document.exitPointerLock && document.pointerLockElement) document.exitPointerLock();
+  }
+
+  el.btnJogar.addEventListener('click', () => {
+    carregarFase();
+    estado = 'jogando';
+    el.jogo.classList.remove('em-menu');
+    el.menu.classList.add('oculto');
+    if (canvas.requestPointerLock) {
+      try { canvas.requestPointerLock(); } catch (e) { /* ignora */ }
+    }
+  });
+
+  el.btnAtualizacao.addEventListener('click', () => {
+    el.menuPrincipal.classList.add('oculto');
+    el.menuUpdates.classList.remove('oculto');
+    el.lista.scrollTop = 0;
+  });
+
+  el.btnVoltar.addEventListener('click', () => {
+    el.menuUpdates.classList.add('oculto');
+    el.menuPrincipal.classList.remove('oculto');
+  });
+
+  el.btnMenu.addEventListener('click', abrirMenu);
 
   function pausar() {
     if (estado !== 'jogando') return;
@@ -619,5 +696,7 @@
   }
 
   carregarFase();
+  montarAtualizacoes();
+  abrirMenu();
   requestAnimationFrame(loop);
 })();
