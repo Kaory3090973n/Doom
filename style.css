@@ -96,4 +96,5 @@ button:active { background: #161616; }
 }
 .tag.adicionado { color: #d4d4d4; }
 .tag.modificado { color: #8f8f8f; }
-.tag.removido { color: #5f5f5f; }
+.tag.deletado { color: #5f5f5f; }
+.onde { display: block; font-size: 0.82em; letter-spacing: 0.06em; color: #5a5a5a; margin-bottom: 0.15em; }

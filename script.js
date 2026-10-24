@@ -25,36 +25,45 @@
  * 0) VERSÕES - a cada mudança no jogo, adicione uma entrada NO TOPO.
  *    Novos recursos/mecânicas: sobe o número do meio (0.2.0 -> 0.3.0).
  *    Só ajustes e correções: sobe o último (0.2.0 -> 0.2.1).
- *    tipo: 'adicionado' | 'modificado' | 'removido'
+ *    tipo: 'adicionado' | 'modificado' | 'deletado'
+ *    onde: arquivo e parte do projeto afetados (ex.: 'script.js · Player')
+ *    TODA mudança entra aqui, mesmo que seja só em um arquivo.
  * ===================================================================== */
 const CHANGELOG = [
   {
+    versao: '0.3.1', data: '24/10/2026',
+    itens: [
+      { tipo: 'modificado', onde: 'script.js · CHANGELOG e lista de atualizações', texto: 'Cada item agora mostra o tipo (adicionado, modificado ou deletado) e o lugar do projeto onde a mudança foi feita.' },
+      { tipo: 'modificado', onde: 'style.css · lista de atualizações', texto: 'Novo visual do rótulo de local e da etiqueta DELETADO (antes REMOVIDO).' }
+    ]
+  },
+  {
     versao: '0.3.0', data: '24/10/2026',
     itens: [
-      { tipo: 'adicionado', texto: 'Visão em primeira pessoa com corpo: ao olhar para baixo você vê o tronco, as pernas, os pés e a sua sombra no chão.' },
-      { tipo: 'adicionado', texto: 'Protótipo de revólver nas mãos do boneco (e do bot): o braço acompanha a mira. Clique para atirar, R para recarregar (6 balas).' },
-      { tipo: 'adicionado', texto: 'Tiro por raio (hitscan) com recuo da câmera e do braço, clarão no cano, marca de impacto e o bot pisca em vermelho ao ser acertado.' },
-      { tipo: 'modificado', texto: 'A cabeça fica invisível na primeira pessoa, mas continua projetando sombra. Na terceira pessoa (V) ela aparece.' }
+      { tipo: 'adicionado', onde: 'script.js · View.placeCamera', texto: 'Visão em primeira pessoa com corpo: câmera um pouco à frente do boneco, então ao olhar para baixo você vê tronco, pernas, pés e a sua sombra.' },
+      { tipo: 'adicionado', onde: 'script.js · createAvatar e updateAvatar', texto: 'Revólver de blocos na mão direita do boneco (e do bot); o braço acompanha a mira, recua ao atirar e abaixa ao recarregar.' },
+      { tipo: 'adicionado', onde: 'script.js · WeaponSystem e Input', texto: 'Tiro por raio (hitscan): clique atira, R recarrega (6 balas), com coice da câmera, clarão no cano e marca de impacto. O bot pisca em vermelho ao ser acertado.' },
+      { tipo: 'modificado', onde: 'script.js · Game e setHeadVisible', texto: 'A cabeça fica invisível na primeira pessoa, mas continua projetando sombra. Na terceira pessoa (V) ela aparece.' }
     ]
   },
   {
     versao: '0.2.0', data: '24/10/2026',
     itens: [
-      { tipo: 'modificado', texto: 'Visual refeito com Three.js: iluminação, sombras e névoa. O código agora é dividido em index.html, style.css e script.js.' },
-      { tipo: 'adicionado', texto: 'Boneco de blocos (estilo Roblox) com animação de andar, agachar e olhar para cima e para baixo.' },
-      { tipo: 'adicionado', texto: 'Bot de teste andando em círculo pela sala, para você ver o estilo do personagem.' },
-      { tipo: 'adicionado', texto: 'Estrutura pronta para multiplayer: o estado do jogador é um objeto simples (posição, rotação, agachado) enviado como snapshot por um adaptador de rede.' },
-      { tipo: 'adicionado', texto: 'Tecla V alterna entre primeira e terceira pessoa, para ver o seu próprio boneco.' },
-      { tipo: 'removido', texto: 'Teto da sala (para a luz e as sombras funcionarem) e o renderizador WebGL próprio.' }
+      { tipo: 'modificado', onde: 'index.html, style.css e script.js', texto: 'Projeto dividido em três arquivos; visual refeito com Three.js (iluminação, sombras e névoa).' },
+      { tipo: 'adicionado', onde: 'script.js · createAvatar', texto: 'Boneco de blocos (estilo Roblox) com animação de andar, agachar e olhar para cima e para baixo.' },
+      { tipo: 'adicionado', onde: 'script.js · Bot', texto: 'Bot de teste andando em círculo pela sala.' },
+      { tipo: 'adicionado', onde: 'script.js · createPlayerState, NetClient e transportes', texto: 'Estrutura pronta para multiplayer: estado do jogador em objeto simples, enviado como snapshot por um adaptador de rede.' },
+      { tipo: 'adicionado', onde: 'script.js · Game (tecla V)', texto: 'Alterna entre primeira e terceira pessoa.' },
+      { tipo: 'deletado', onde: 'script.js · World.buildTestMap e renderizador', texto: 'Teto da sala (para a luz e as sombras funcionarem) e o renderizador WebGL próprio.' }
     ]
   },
   {
     versao: '0.1.0', data: '24/10/2026',
     itens: [
-      { tipo: 'adicionado', texto: 'Movimentação estilo CS: WASD com inércia, pulo, agachar (Ctrl ou C) e Shift para andar devagar.' },
-      { tipo: 'adicionado', texto: 'Câmera 3D com mouse travado (Pointer Lock), colisão com paredes e degraus.' },
-      { tipo: 'adicionado', texto: 'Sala de testes com escada, caixas, obstáculo baixo e túnel para passar agachado.' },
-      { tipo: 'adicionado', texto: 'Telas de início e pausa, lista de atualizações e versão no canto da tela.' }
+      { tipo: 'adicionado', onde: 'script.js · Player', texto: 'Movimentação estilo CS: WASD com inércia, pulo, agachar (Ctrl ou C) e Shift para andar devagar.' },
+      { tipo: 'adicionado', onde: 'script.js · Input e View', texto: 'Câmera 3D com mouse travado (Pointer Lock), colisão com paredes e degraus.' },
+      { tipo: 'adicionado', onde: 'script.js · World.buildTestMap', texto: 'Sala de testes com escada, caixas, obstáculo baixo e túnel para passar agachado.' },
+      { tipo: 'adicionado', onde: 'index.html · telas', texto: 'Telas de início e pausa, lista de atualizações e versão no canto da tela.' }
     ]
   }
 ];
@@ -1070,8 +1079,11 @@ class Game {
         linha.className = 'mudanca';
         const tag = document.createElement('span');
         tag.className = 'tag ' + m.tipo; tag.textContent = m.tipo.toUpperCase();
+        const corpo = document.createElement('span');
+        const onde = document.createElement('small'); onde.className = 'onde'; onde.textContent = m.onde || '';
         const texto = document.createElement('span'); texto.textContent = m.texto;
-        linha.append(tag, texto); bloco.append(linha);
+        corpo.append(onde, texto);
+        linha.append(tag, corpo); bloco.append(linha);
       }
       lista.append(bloco);
     }
