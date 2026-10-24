@@ -29,6 +29,15 @@
  * ===================================================================== */
 const CHANGELOG = [
   {
+    versao: '0.3.0', data: '24/10/2026',
+    itens: [
+      { tipo: 'adicionado', texto: 'Visão em primeira pessoa com corpo: ao olhar para baixo você vê o tronco, as pernas, os pés e a sua sombra no chão.' },
+      { tipo: 'adicionado', texto: 'Protótipo de revólver nas mãos do boneco (e do bot): o braço acompanha a mira. Clique para atirar, R para recarregar (6 balas).' },
+      { tipo: 'adicionado', texto: 'Tiro por raio (hitscan) com recuo da câmera e do braço, clarão no cano, marca de impacto e o bot pisca em vermelho ao ser acertado.' },
+      { tipo: 'modificado', texto: 'A cabeça fica invisível na primeira pessoa, mas continua projetando sombra. Na terceira pessoa (V) ela aparece.' }
+    ]
+  },
+  {
     versao: '0.2.0', data: '24/10/2026',
     itens: [
       { tipo: 'modificado', texto: 'Visual refeito com Three.js: iluminação, sombras e névoa. O código agora é dividido em index.html, style.css e script.js.' },
@@ -96,7 +105,16 @@ const CONFIG = Object.freeze({
   far: 150,
   pitchLimit: 89,            // graus para cima/baixo
   punchDecay: 12,            // retorno do "coice" da arma (usado quando houver armas)
-  thirdPersonDistance: 3.2   // distância da câmera na terceira pessoa (tecla V)
+  thirdPersonDistance: 3.2,  // distância da câmera na terceira pessoa (tecla V)
+  fpCameraForward: 0.15,     // câmera um pouco à frente do corpo (para ver o corpo ao olhar para baixo)
+
+  // --- arma (revólver de teste) ---
+  fireInterval: 0.38,        // segundos entre tiros
+  magSize: 6,
+  reloadTime: 1.5,
+  recoilPitch: 0.035,        // coice vertical (radianos) por tiro
+  recoilYaw: 0.012,          // coice lateral aleatório máximo
+  shotRange: 100
 });
 const C = CONFIG;
 const X = 0, Y = 1, Z = 2;   // índices dos vetores [x, y, z]
@@ -218,6 +236,7 @@ class Input {
     this.mouseDX = 0;
     this.mouseDY = 0;
     this.enabled = false;      // só captura quando o jogo está rodando (mouse travado)
+    this.mouseDown = false;    // botão esquerdo (tiro)
 
     window.addEventListener('keydown', e => {
       if (!this.enabled) return;
@@ -226,7 +245,9 @@ class Input {
       if (!e.repeat) { this.keys.add(e.code); this._edges.add(e.code); }
     });
     window.addEventListener('keyup', e => { this.keys.delete(e.code); });
-    window.addEventListener('blur', () => this.keys.clear());
+    window.addEventListener('blur', () => { this.keys.clear(); this.mouseDown = false; });
+    document.addEventListener('mousedown', e => { if (this.enabled && e.button === 0) this.mouseDown = true; });
+    document.addEventListener('mouseup', e => { if (e.button === 0) this.mouseDown = false; });
 
     document.addEventListener('mousemove', e => {
       if (!this.enabled) return;
@@ -254,13 +275,15 @@ class Input {
       jumpPressed: this._edges.has('Space'),
       crouch: down('ControlLeft') || down('ControlRight') || down('KeyC'),
       shift: down('ShiftLeft') || down('ShiftRight'),
-      toggleView: this._edges.has('KeyV')
+      toggleView: this._edges.has('KeyV'),
+      fire: this.mouseDown,
+      reload: this._edges.has('KeyR')
     };
     this._edges.clear();       // "apertou agora" vale só para o primeiro passo do quadro
     return cmd;
   }
 
-  reset() { this.keys.clear(); this._edges.clear(); this.mouseDX = this.mouseDY = 0; }
+  reset() { this.keys.clear(); this._edges.clear(); this.mouseDX = this.mouseDY = 0; this.mouseDown = false; }
 }
 
 
@@ -606,10 +629,45 @@ function createAvatar(look = SKINS[0]) {
   const legL = limb(0.28, 0.7, 0.28, look.pants, -0.15, 0.7);
   const legR = limb(0.28, 0.7, 0.28, look.pants, 0.15, 0.7);
 
+  // revólver na mão direita: construído apontando para -Z e depois girado
+  // para seguir a direção do braço (que aponta para baixo no sistema do pivô)
+  const gun = new THREE.Group();
+  gun.position.set(0, -0.7, 0);
+  gun.rotation.x = -Math.PI / 2;
+  gun.add(
+    part(0.05, 0.05, 0.3, 0x8a8f94, 0, 0.03, -0.17),      // cano
+    part(0.085, 0.085, 0.09, 0x6f757a, 0, 0.025, -0.02),   // tambor
+    part(0.06, 0.1, 0.14, 0x7c8186, 0, 0.0, 0.07),         // armação
+    part(0.05, 0.14, 0.06, 0x6b4f35, 0, -0.1, 0.12),       // cabo de madeira
+    part(0.02, 0.03, 0.02, 0x3a3d40, 0, 0.065, -0.3)       // mira
+  );
+  const flash = part(0.1, 0.1, 0.12, 0xffd34d, 0, 0.03, -0.38);   // clarão do tiro
+  flash.material = new THREE.MeshBasicMaterial({ color: 0xffd34d });
+  flash.castShadow = false; flash.visible = false;
+  gun.add(flash);
+  armR.add(gun);
+
   root.add(torso, head, armL, armR, legL, legR);
-  root.userData = { head, armL, armR, legL, legR, phase: 0, amp: 0 };
+
+  // todos os materiais do boneco (para piscar vermelho ao levar tiro)
+  const mats = [];
+  root.traverse(o => { if (o.isMesh && o.material.emissive) mats.push(o.material); });
+  const headMats = [];
+  head.traverse(o => { if (o.isMesh) headMats.push(o.material); });
+  root.userData = { head, armL, armR, legL, legR, gun, flash, mats, headMats,
+                    phase: 0, amp: 0, recoil: 0, flashT: 0, hitT: 0, aim: 0 };
   return root;
 }
+
+/** Primeira pessoa: a cabeça não é desenhada (colorWrite off), mas ainda projeta sombra. */
+function setHeadVisible(avatar, visible) {
+  for (const m of avatar.userData.headMats) { m.colorWrite = visible; m.depthWrite = visible; }
+}
+
+/** Dispara os efeitos visuais de um tiro no boneco (coice do braço + clarão). */
+function avatarShot(avatar) { avatar.userData.recoil = 1; avatar.userData.flashT = 0.05; }
+/** Faz o boneco piscar em vermelho (acertado). */
+function avatarHit(avatar) { avatar.userData.hitT = 0.18; }
 
 /**
  * Posiciona e anima o boneco a partir de uma "visão" do jogador:
@@ -634,7 +692,20 @@ function updateAvatar(avatar, v, dt) {
   const swing = Math.sin(u.phase) * u.amp * 0.9;
   u.legL.rotation.x = swing;  u.legR.rotation.x = -swing;
   u.armL.rotation.x = -swing; u.armR.rotation.x = swing;
-  if (!v.onGround) { u.armL.rotation.x = u.armR.rotation.x = -0.7; }
+  if (!v.onGround) u.armL.rotation.x = -0.7;
+
+  // braço direito levantado segurando a arma: acompanha o pitch (olhar para cima/baixo)
+  u.recoil = Math.max(0, u.recoil - dt * 7);
+  const reload = v.reloading ? 0.75 : 0;                 // recarregando: abaixa a arma
+  u.armR.rotation.x = Math.PI / 2 + v.pitch + u.recoil * 0.35 - reload;
+  u.armR.rotation.z = -0.05;
+
+  // clarão do cano e piscar vermelho ao ser acertado
+  u.flashT = Math.max(0, u.flashT - dt);
+  u.flash.visible = u.flashT > 0;
+  u.hitT = Math.max(0, u.hitT - dt);
+  const e = u.hitT > 0 ? 0.8 : 0;
+  for (const m of u.mats) m.emissive.setRGB(e, e * 0.1, e * 0.1);
 }
 
 
@@ -721,7 +792,10 @@ class View {
   placeCamera(player, world, thirdPerson) {
     const eye = player.eyePosition(), a = player.viewAngles();
     let pos = eye;
-    if (thirdPerson) {
+    if (!thirdPerson) {
+      // um pouco à frente do corpo: ao olhar para baixo dá para ver o tronco e as pernas
+      pos = [eye[X] + Math.sin(player.yaw) * C.fpCameraForward, eye[Y], eye[Z] - Math.cos(player.yaw) * C.fpCameraForward];
+    } else {
       const f = player.forward();
       const hit = world.raycast(eye, [-f[X], -f[Y], -f[Z]], C.thirdPersonDistance + 0.3);
       const d = hit ? Math.max(0.3, hit.distance - 0.3) : C.thirdPersonDistance;
@@ -825,6 +899,95 @@ class Bot {
 
 
 /* =====================================================================
+ * 11b) WEAPON - revólver de teste: tiro por raio (hitscan), munição,
+ *      recarga, coice e marca de impacto. Roda como um "sistema" do Game
+ *      (veja game.addSystem). Para outras armas, troque os números do CONFIG
+ *      ou crie uma classe parecida com outro modelo e outra cadência.
+ * ===================================================================== */
+/** Raio contra caixa alinhada aos eixos. Devolve a distância ou null. */
+function rayBoxDistance(o, d, min, max, maxDist) {
+  let tmin = 0, tmax = maxDist;
+  for (let i = 0; i < 3; i++) {
+    if (Math.abs(d[i]) < 1e-9) { if (o[i] < min[i] || o[i] > max[i]) return null; continue; }
+    let t1 = (min[i] - o[i]) / d[i], t2 = (max[i] - o[i]) / d[i];
+    if (t1 > t2) { const t = t1; t1 = t2; t2 = t; }
+    tmin = Math.max(tmin, t1); tmax = Math.min(tmax, t2);
+    if (tmin > tmax) return null;
+  }
+  return tmin;
+}
+
+class WeaponSystem {
+  constructor(game) {
+    this.game = game;
+    this.ammo = C.magSize;
+    this.cooldown = 0;
+    this.reloadT = 0;
+    this.marks = [];            // marcas de impacto { mesh, t }
+    this.shots = 0;
+  }
+  get reloading() { return this.reloadT > 0; }
+
+  update(dt, game, cmd) {
+    this.cooldown = Math.max(0, this.cooldown - dt);
+    if (this.reloadT > 0) {
+      this.reloadT -= dt;
+      if (this.reloadT <= 0) { this.reloadT = 0; this.ammo = C.magSize; }
+    }
+    if (cmd && cmd.reload) this.reload();
+    if (cmd && cmd.fire && this.cooldown <= 0 && this.reloadT <= 0) {
+      if (this.ammo > 0) this.shoot(); else this.reload();
+    }
+  }
+
+  reload() {
+    if (this.reloadT > 0 || this.ammo >= C.magSize) return;
+    this.reloadT = C.reloadTime;
+  }
+
+  shoot() {
+    const g = this.game, p = g.player;
+    this.ammo--; this.shots++;
+    this.cooldown = C.fireInterval;
+
+    // o raio sai do olho, na direção da mira (já inclui o coice atual)
+    const o = p.eyePosition(), d = p.forward();
+    let dist = C.shotRange, hitAvatar = null;
+    const wall = g.world.raycast(o, d, C.shotRange);
+    if (wall) dist = wall.distance;
+    for (const r of g.remotes.players.values()) {
+      const v = r.view, h = v.crouched ? C.heightCrouch : C.heightStand, w = C.radius;
+      const t = rayBoxDistance(o, d, [v.pos[X] - w, v.pos[Y], v.pos[Z] - w],
+                                      [v.pos[X] + w, v.pos[Y] + h, v.pos[Z] + w], dist);
+      if (t !== null && t < dist) { dist = t; hitAvatar = r; }
+    }
+    if (hitAvatar) avatarHit(hitAvatar.avatar);
+    else if (wall) this._mark(wall.point, wall.normal);
+
+    // coice da câmera e do braço, clarão no cano
+    p.addPunch(C.recoilPitch, (Math.random() - 0.5) * 2 * C.recoilYaw);
+    avatarShot(g.localAvatar);
+    if (this.ammo === 0) this.reload();
+  }
+
+  _mark(pt, n) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.1), new THREE.MeshBasicMaterial({ color: 0x1a1a1a }));
+    m.position.set(pt[X] + n[X] * 0.01, pt[Y] + n[Y] * 0.01, pt[Z] + n[Z] * 0.01);
+    this.game.view.scene.add(m);
+    this.marks.push({ mesh: m, t: 6 });
+    if (this.marks.length > 40) this._drop(this.marks.shift());
+  }
+  _drop(k) { this.game.view.scene.remove(k.mesh); }
+
+  /** Chamado por quadro: envelhece as marcas de impacto. */
+  tick(dt) {
+    for (const k of this.marks) k.t -= dt;
+    while (this.marks.length && this.marks[0].t <= 0) this._drop(this.marks.shift());
+  }
+}
+
+
+/* =====================================================================
  * 12) GAME - loop de passo fixo, trava do mouse (Pointer Lock), telas, HUD
  *
  *    Para ADICIONAR ARMAS depois:
@@ -858,9 +1021,10 @@ class Game {
 
     // boneco do próprio jogador (só aparece na terceira pessoa)
     this.localAvatar = createAvatar(SKINS[1]);
-    this.localAvatar.visible = false;
     this.view.scene.add(this.localAvatar);
     this.thirdPerson = false;
+    setHeadVisible(this.localAvatar, false);       // 1ª pessoa: sem cabeça (a sombra continua)
+    this.weapon = new WeaponSystem(this);
 
     this.systems = [];
     this.state = 'menu';                 // 'menu' | 'jogando' | 'pausado'
@@ -977,6 +1141,7 @@ class Game {
         const cmd = this.input.buildCommand();
         if (cmd.toggleView) this._toggleView();
         this.player.update(cmd, step);
+        this.weapon.update(step, this, cmd);
         for (const s of this.systems) s.update && s.update(step, this);
         this._accum -= step;
       }
@@ -993,9 +1158,10 @@ class Game {
     this.bot.update(frameTime);
     this.remotes.update(frameTime);
 
-    if (this.thirdPerson) {
-      updateAvatar(this.localAvatar, toSnapshot(this.player.state), frameTime);
-    }
+    this.weapon.tick(frameTime);
+    // o corpo do jogador é sempre desenhado: na 1ª pessoa dá para vê-lo ao olhar para baixo
+    updateAvatar(this.localAvatar,
+      { ...toSnapshot(this.player.state), reloading: this.weapon.reloading }, frameTime);
     this.view.placeCamera(this.player, this.world, this.thirdPerson);
     this.view.render();
     this._updateHud();
@@ -1004,7 +1170,7 @@ class Game {
 
   _toggleView() {
     this.thirdPerson = !this.thirdPerson;
-    this.localAvatar.visible = this.thirdPerson;
+    setHeadVisible(this.localAvatar, this.thirdPerson);
     this._syncUI();
   }
 
@@ -1015,6 +1181,7 @@ class Game {
       `velocidade  ${p.speed.toFixed(2)} m/s\n` +
       `estado      ${p.onGround ? 'chão' : 'ar'}${p.crouched ? ' · agachado' : ''}\n` +
       `posição     ${p.pos.map(v => v.toFixed(2)).join('  ')}\n` +
+      `munição     ${this.weapon.reloading ? 'recarregando...' : this.weapon.ammo + ' / ' + C.magSize}  (clique atira, R recarrega)\n` +
       `câmera      ${this.thirdPerson ? '3ª pessoa' : '1ª pessoa'} (V)\n` +
       `rede        local · ${this.net.sent} enviados · ${this.remotes.count} remoto(s)\n` +
       `fps         ${Math.round(this._fps)}`;
