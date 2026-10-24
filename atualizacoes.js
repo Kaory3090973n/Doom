@@ -3,6 +3,15 @@
 // tipo: 'adicionado' | 'modificado' | 'removido'
 const ATUALIZACOES = [
   {
+    versao: '0.5.0',
+    data: '23/10/2026',
+    itens: [
+      { tipo: 'modificado', texto: 'Novo visual minimalista: lobby todo preto, fonte limpa e botões com cantos levemente arredondados.' },
+      { tipo: 'modificado', texto: 'Atualizações, pausa, vitória e derrota seguem o mesmo visual. O jogo em si não mudou.' },
+      { tipo: 'removido', texto: 'Botão Sair removido do lobby.' }
+    ]
+  },
+  {
     versao: '0.4.0',
     data: '23/10/2026',
     itens: [
